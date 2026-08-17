@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>AppIcon-512.png</file>
+        <file>AppIcon-256.png</file>
+    </qresource>
+    <qresource prefix="/assets">
+        <file>DejaVuSans.ttf</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>style.qss</file>
+    </qresource>
+</RCC>
