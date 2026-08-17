@@ -1,6 +1,6 @@
 # Glucocalc — agent guidance
 
-Qt port of Swift `Glucocalc` (`/Users/jeff/source/apple/glucocalc`) — Glucose/HbA1c calculator (ADAG 2008).
+Qt port of Swift `Glucocalc` (`/Users/jeff/source/glucocalc/glucocalc-apple`) — Glucose/HbA1c calculator (ADAG 2008).
 
 ## Qt paths (CMAKE_PREFIX_PATH)
 
@@ -14,24 +14,24 @@ Static Qt 6.11.1, `CMAKE_AUTOMOC/AUTORCC/AUTOUIC ON`, `C++17`, `Qt6::Core Gui Wi
 
 | Platform | Source | Build |
 |---|---|---|
-| macOS | `/Users/jeff/source/glucocalc` | `/Users/jeff/source/glucocalc/build` (`glucocalc.app`) |
-| Linux (Debian) | `/zstore/source/glucocalc` (`/Volumes/source/glucocalc` via Samba) | `/home/jeff/build-glucocalc` (`glucocalc` ELF) |
-| Windows (Win11VM) | `C:\source\glucocalc` | `C:\Users\jeff\build-glucocalc` (`glucocalc.exe`) |
+| macOS | `/Users/jeff/source/glucocalc/glucocalc-qt` | `/Users/jeff/source/glucocalc/glucocalc-qt/build` (`glucocalc.app`) |
+| Linux (Debian) | `/zstore/source/glucocalc/glucocalc-qt` (`/Volumes/source/glucocalc/glucocalc-qt` via Samba) | `/home/jeff/build-glucocalc` (`glucocalc` ELF) |
+| Windows (Win11VM) | `C:\source\glucocalc\glucocalc-qt` | `C:\Users\jeff\build-glucocalc` (`glucocalc.exe`) |
 
 ## Build & test
 
 ### macOS
 ```sh
-cmake -S /Users/jeff/source/glucocalc -B /Users/jeff/source/glucocalc/build
-cmake --build /Users/jeff/source/glucocalc/build
+cmake -S /Users/jeff/source/glucocalc/glucocalc-qt -B /Users/jeff/source/glucocalc/glucocalc-qt/build
+cmake --build /Users/jeff/source/glucocalc/glucocalc-qt/build
 # -> build/glucocalc.app (20M arm64, AppIcon.icns)
 ```
 Or `open build/glucocalc.app`
 
 ### Linux (Debian 192.168.1.39 / debian.lan)
 ```sh
-tar cf - -C /Users/jeff/source --exclude=glucocalc/build --exclude=glucocalc/*.tar.gz glucocalc | ssh jeff@debian.lan 'rm -rf /zstore/source/glucocalc && tar xf - -C /zstore/source'
-ssh jeff@debian.lan 'cmake -S /zstore/source/glucocalc -B /home/jeff/build-glucocalc && cmake --build /home/jeff/build-glucocalc'
+tar cf - -C /Users/jeff/source/glucocalc --exclude=glucocalc-qt/build --exclude=glucocalc-qt/*.tar.gz glucocalc-qt | ssh jeff@debian.lan 'rm -rf /zstore/source/glucocalc/glucocalc-qt && mkdir -p /zstore/source/glucocalc && tar xf - -C /zstore/source/glucocalc'
+ssh jeff@debian.lan 'cmake -S /zstore/source/glucocalc/glucocalc-qt -B /home/jeff/build-glucocalc && cmake --build /home/jeff/build-glucocalc'
 # -> /home/jeff/build-glucocalc/glucocalc (32M ELF x86-64) + glucocalc.desktop + glucocalc.png
 ```
 Run headless screenshot: `ssh jeff@debian.lan "cat > /tmp/capture.sh <<'EOS'
@@ -42,8 +42,8 @@ xvfb-run -a --server-args='-screen 0 1280x1024x24' /tmp/capture.sh"`
 
 ### Windows (Win11VM 192.168.1.137 / win11.lan)
 ```sh
-scp -r /Users/jeff/source/glucocalc jeff@win11.lan:'C:/source/glucocalc_new'
-ssh jeff@win11.lan 'powershell -Command "Remove-Item -Recurse -Force C:/source/glucocalc -ErrorAction Ignore; Rename-Item C:/source/glucocalc_new C:/source/glucocalc"'
+scp -r /Users/jeff/source/glucocalc/glucocalc-qt jeff@win11.lan:'C:/source/glucocalc-qt_new'
+ssh jeff@win11.lan 'powershell -Command "Remove-Item -Recurse -Force C:/source/glucocalc/glucocalc-qt -ErrorAction Ignore; New-Item -ItemType Directory -Force -Path C:/source/glucocalc | Out-Null; Rename-Item C:/source/glucocalc-qt_new C:/source/glucocalc/glucocalc-qt"'
 # Build requires vcvars64.bat (MSVC 18 BuildTools)
 # Use bundled script:
 scp /tmp/build-glucocalc-win.ps1 jeff@win11.lan:'C:/source/build-glucocalc-win.ps1'
@@ -54,7 +54,7 @@ ssh jeff@win11.lan 'powershell -ExecutionPolicy Bypass -File C:/source/build-glu
 ```ps
 $vcvars="C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 cmd /c "`"$vcvars`" > nul 2>&1 && set" | ForEach-Object { if($_ -match '^(\w+)=(.*)') { Set-Item env:$matches[1] $matches[2] } }
-cmake -S C:\source\glucocalc -B C:\Users\jeff\build-glucocalc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:\Qt\Qt.6.11.1-static"
+cmake -S C:\source\glucocalc\glucocalc-qt -B C:\Users\jeff\build-glucocalc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:\Qt\Qt.6.11.1-static"
 cmake --build C:\Users\jeff\build-glucocalc
 ```
 
