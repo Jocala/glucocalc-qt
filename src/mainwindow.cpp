@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QApplication>
 
 MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     setWindowIcon(QIcon(":/AppIcon-512.png"));
@@ -25,13 +26,12 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     // Top bar with help button (visible on all platforms, esp. Linux)
     QHBoxLayout *topBar = new QHBoxLayout;
     topBar->addStretch();
-    QPushButton *helpBtn = new QPushButton("?", central);
+    helpBtn = new QPushButton("?", central);
     helpBtn->setObjectName("helpButton");
     helpBtn->setFixedSize(32,32);
     helpBtn->setToolTip("Help");
     QFont hbFont("DejaVu Sans", 18, QFont::Bold);
     helpBtn->setFont(hbFont);
-    helpBtn->setStyleSheet("#helpButton { border-radius: 16px; border: 1px solid #CCCCCC; background-color: white; color: #007AFF; padding: 0px; } #helpButton:pressed { background-color: #E5E5EA; } #helpButton:hover { border-color: #007AFF; }");
     connect(helpBtn, &QPushButton::clicked, this, &MainWindow::showHelp);
     topBar->addWidget(helpBtn);
     layout->addLayout(topBar);
@@ -47,7 +47,6 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     // Display card (rounded gray)
     displayCard = new QWidget(central);
     displayCard->setObjectName("displayCard");
-    displayCard->setStyleSheet("#displayCard { background-color: #8E8E93; background: #9A9A9A; border-radius: 16px; } QLabel { background: transparent; }");
     QVBoxLayout *cardLay = new QVBoxLayout(displayCard);
     cardLay->setSpacing(10);
     cardLay->setContentsMargins(16,16,16,16);
@@ -56,12 +55,10 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     {
         QHBoxLayout *row = new QHBoxLayout;
         promptLabel = new QLabel("Enter eAG below (mg/dl)", displayCard);
-        promptLabel->setStyleSheet("color: #333333; font-size: 13px;");
         inputLabel = new QLabel("0", displayCard);
         QFont f = inputLabel->font(); f.setPointSize(34); f.setBold(true);
         inputLabel->setFont(f);
         inputLabel->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
-        inputLabel->setStyleSheet("color: #000000; font-size: 34px; font-weight: bold;");
         row->addWidget(promptLabel);
         row->addStretch();
         row->addWidget(inputLabel);
@@ -78,7 +75,6 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     {
         QHBoxLayout *row = new QHBoxLayout;
         resultLabel1 = new QLabel("NGSP HbA1c (%)", displayCard);
-        resultLabel1->setStyleSheet("color: #333333;");
         resultValue1 = new QLabel("0", displayCard);
         QFont f = resultValue1->font(); f.setPointSize(20); f.setWeight(QFont::Medium);
         resultValue1->setFont(f);
@@ -92,7 +88,6 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     {
         QHBoxLayout *row = new QHBoxLayout;
         resultLabel2 = new QLabel("IFCC HbA1c (mmol/mol)", displayCard);
-        resultLabel2->setStyleSheet("color: #333333;");
         resultValue2 = new QLabel("0", displayCard);
         QFont f = resultValue2->font(); f.setPointSize(20); f.setWeight(QFont::Medium);
         resultValue2->setFont(f);
@@ -103,8 +98,31 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
         cardLay->addLayout(row);
     }
 
-    // Geometry is fixed via layout constraint; values use minimum width to prevent jump but not fixed double (Linux HiDPI fix)
+    // Lock geometry: reserve the widest text each label can ever display (any
+    // mode/UK state) plus the widest numeric values, so the layout's sizeHint
+    // never changes and the fixed window never clips or shifts.
     {
+        auto widest = [](const QStringList &texts, const QFont &f) {
+            QFontMetrics fm(f);
+            int w = 0;
+            for (const QString &t : texts) w = qMax(w, fm.horizontalAdvance(t));
+            return w;
+        };
+        promptLabel->setMinimumWidth(widest({
+            QStringLiteral("Enter HbA1c below (mmol/mol)"),
+            QStringLiteral("Enter HbA1c below (%)"),
+            QStringLiteral("Enter eAG below (mmol/L)"),
+            QStringLiteral("Enter eAG below (mg/dl)")
+        }, promptLabel->font()));
+        resultLabel1->setMinimumWidth(widest({
+            QStringLiteral("Calculated eAG (mg/dl)"),
+            QStringLiteral("NGSP HbA1c (%)")
+        }, resultLabel1->font()));
+        resultLabel2->setMinimumWidth(widest({
+            QStringLiteral("Calculated eAG (mmol/L)"),
+            QStringLiteral("IFCC HbA1c (mmol/mol)")
+        }, resultLabel2->font()));
+
         QFontMetrics fm(inputLabel->font());
         const int wInput = fm.horizontalAdvance(QStringLiteral("999.99"));
         const int pad = fm.horizontalAdvance(QStringLiteral("   "));
@@ -120,23 +138,20 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     // Calculation segmented control
     {
         QHBoxLayout *calcRow = new QHBoxLayout;
-        QLabel *calcLabel = new QLabel("Calculation", central);
-        calcLabel->setStyleSheet("color: #000; font-size: 13px;");
+        calcLabel = new QLabel("Calculation", central);
         calcRow->addWidget(calcLabel);
         calcRow->addStretch();
 
-        QWidget *seg = new QWidget(central);
-        seg->setStyleSheet("background: #E5E5EA; border-radius: 8px;");
-        QHBoxLayout *segLay = new QHBoxLayout(seg);
+        segTrack = new QWidget(central);
+        QHBoxLayout *segLay = new QHBoxLayout(segTrack);
         segLay->setContentsMargins(2,2,2,2);
         segLay->setSpacing(2);
 
-        modeEAGBtn = new QPushButton("Calculate eAG", seg);
-        modeA1cBtn = new QPushButton("Calculate HbA1c", seg);
+        modeEAGBtn = new QPushButton("Calculate eAG", segTrack);
+        modeA1cBtn = new QPushButton("Calculate HbA1c", segTrack);
         for(auto b: {modeEAGBtn, modeA1cBtn}){
             b->setCheckable(true);
             b->setFixedHeight(28);
-            b->setStyleSheet("QPushButton { border: none; border-radius: 6px; padding: 4px 12px; background: transparent; } QPushButton:checked { background: #007AFF; color: white; }");
         }
         modeGroup = new QButtonGroup(this);
         modeGroup->setExclusive(true);
@@ -149,29 +164,38 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
         segLay->addWidget(modeA1cBtn);
         connect(modeGroup, &QButtonGroup::idClicked, this, &MainWindow::modeChanged);
 
-        calcRow->addWidget(seg);
+        calcRow->addWidget(segTrack);
         layout->addLayout(calcRow);
     }
 
-    // UK toggle
-    ukBox = new QCheckBox("UK (IFCC)",central);
-    connect(ukBox,&QCheckBox::toggled,this,&MainWindow::toggleUKUS);
-    layout->addWidget(ukBox);
+    // Options row: UK checkbox (left) + persistent theme checkbox (right)
+    {
+        QHBoxLayout *optsRow = new QHBoxLayout;
+        ukBox = new QCheckBox("UK (IFCC)", central);
+        connect(ukBox, &QCheckBox::toggled, this, &MainWindow::toggleUKUS);
+        optsRow->addWidget(ukBox);
+        optsRow->addStretch();
+        themeBox = new QCheckBox("Dark Mode", central);
+        themeBox->setChecked(Theme::isDark());
+        themeBox->setToolTip("Toggle light/dark theme");
+        connect(themeBox, &QCheckBox::toggled, this, &MainWindow::toggleTheme);
+        optsRow->addWidget(themeBox);
+        layout->addLayout(optsRow);
+    }
 
     // Keypad: 4 columns as in Swift
     keypad = new QGridLayout;
     keypad->setHorizontalSpacing(10);
     keypad->setVerticalSpacing(10);
-    auto makeKey = [&](const QString &label, bool utility=false, bool accent=false, const QString &sysIcon=QString()){
+    auto makeKey = [&](const QString &label, bool utility=false, bool accent=false){
         QPushButton *btn = new QPushButton(label, central);
         btn->setFixedHeight(54);
         btn->setMinimumWidth(60);
         QFont f = btn->font(); f.setPointSize(16); f.setWeight(QFont::Medium);
         btn->setFont(f);
-        QString bg = accent ? "#007AFF" : (utility ? "#AEAEB2" : "#E5E5EA");
-        QString fg = accent ? "white" : "black";
-        btn->setStyleSheet(QString("QPushButton { background: %1; color: %2; border-radius: 14px; border: none; } QPushButton:pressed { background: #C7C7CC; }").arg(bg, fg));
-        if(accent) btn->setStyleSheet(QString("QPushButton { background: #007AFF; color: white; border-radius: 14px; border: none; }"));
+        if(accent) accentKey = btn;
+        else if(utility) utilityKeys.append(btn);
+        else digitKeys.append(btn);
         return btn;
     };
 
@@ -184,7 +208,7 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     QPushButton *b4 = makeKey("4"); connect(b4, &QPushButton::clicked, this, &MainWindow::digitPressed); keypad->addWidget(b4,1,0);
     QPushButton *b5 = makeKey("5"); connect(b5, &QPushButton::clicked, this, &MainWindow::digitPressed); keypad->addWidget(b5,1,1);
     QPushButton *b6 = makeKey("6"); connect(b6, &QPushButton::clicked, this, &MainWindow::digitPressed); keypad->addWidget(b6,1,2);
-    QPushButton *bDel = makeKey("⌫", true); 
+    QPushButton *bDel = makeKey("⌫", true);
     // Fallback glyph for Linux where ⌫ may not render
     if(bDel->fontMetrics().horizontalAdvance("⌫") == 0 || bDel->text().isEmpty()){
         bDel->setText("<-");
@@ -209,10 +233,58 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     setWindowTitle("Glucocalc");
     updateResultLabels();
     updateDisplay();
-    // Lock window geometry to its sizeHint (includes pre-sized labels + keypad)
+    applyTheme();
+    // Lock window geometry: never resizable by the user and, because all label
+    // widths are pre-reserved above, the sizeHint never changes via code either.
     layout->setSizeConstraint(QLayout::SetFixedSize);
     setFixedSize(sizeHint());
-    setMinimumWidth(360);
+}
+
+void MainWindow::applyTheme(){
+    const Theme::Colors c = Theme::colors();
+
+    helpBtn->setStyleSheet(QStringLiteral(
+        "#helpButton { border-radius: 16px; border: 1px solid %1; background-color: %2; color: %3; padding: 0px; }"
+        "#helpButton:pressed { background-color: %4; }"
+        "#helpButton:hover { border-color: %5; }")
+        .arg(c.border, c.helpBg, c.accent, c.helpPressed, c.accent));
+
+    // Display card: grey surface in both themes, tuned per theme (light #9A9A9A, dark #6E6E73)
+    displayCard->setStyleSheet(QStringLiteral(
+        "#displayCard { background-color: %1; border-radius: 16px; } QLabel { background: transparent; }")
+        .arg(c.cardBg));
+    promptLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 13px;").arg(c.textSecondary));
+    inputLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 34px; font-weight: bold;").arg(c.textPrimary));
+    resultLabel1->setStyleSheet(QStringLiteral("color: %1;").arg(c.textSecondary));
+    resultLabel2->setStyleSheet(QStringLiteral("color: %1;").arg(c.textSecondary));
+    resultValue1->setStyleSheet(QStringLiteral("color: %1;").arg(c.textPrimary));
+    resultValue2->setStyleSheet(QStringLiteral("color: %1;").arg(c.textPrimary));
+
+    calcLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 13px;").arg(c.textPrimary));
+    segTrack->setStyleSheet(QStringLiteral("background: %1; border-radius: 8px;").arg(c.segTrack));
+    const QString segBtnSS = QStringLiteral(
+        "QPushButton { border: none; border-radius: 6px; padding: 4px 12px; background: transparent; }"
+        "QPushButton:checked { background: %1; color: white; }").arg(c.accent);
+    modeEAGBtn->setStyleSheet(segBtnSS);
+    modeA1cBtn->setStyleSheet(segBtnSS);
+
+    const QString keySS = QStringLiteral(
+        "QPushButton { background: %1; color: %2; border-radius: 14px; border: none; }"
+        "QPushButton:pressed { background: %3; }");
+    for(QPushButton *k : digitKeys)
+        k->setStyleSheet(keySS.arg(c.segTrack, c.textPrimary, c.keyPressed));
+    for(QPushButton *k : utilityKeys)
+        k->setStyleSheet(keySS.arg(c.keyUtility, c.textPrimary, c.keyPressed));
+    if(accentKey)
+        accentKey->setStyleSheet(QStringLiteral(
+            "QPushButton { background: %1; color: white; border-radius: 14px; border: none; }"
+            "QPushButton:pressed { background: %2; }").arg(c.accent, c.keyPressed));
+}
+
+void MainWindow::toggleTheme(){
+    Theme::setDark(themeBox->isChecked());
+    Theme::apply(qApp);
+    applyTheme();
 }
 
 void MainWindow::digitPressed(){

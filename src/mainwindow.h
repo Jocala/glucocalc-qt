@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "calculator.h"
+#include "theme.h"
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QGridLayout>
@@ -10,6 +11,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QButtonGroup>
+#include <QVector>
 
 class MainWindow: public QMainWindow{
     Q_OBJECT
@@ -23,6 +25,7 @@ private slots:
     void equalsPressed();
     void modeChanged(int);
     void toggleUKUS();
+    void toggleTheme();
     void showHelp();
 private:
     enum Mode{HbA1cMode,EAGMode};
@@ -32,6 +35,10 @@ private:
     QPushButton *modeA1cBtn;
     QButtonGroup *modeGroup;
     QCheckBox* ukBox;
+    QCheckBox* themeBox;
+    QPushButton* helpBtn;
+    QWidget* segTrack;
+    QLabel* calcLabel;
     QLabel* promptLabel;
     QLabel* inputLabel;
     QLabel* resultLabel1;
@@ -39,6 +46,10 @@ private:
     QLabel* resultLabel2;
     QLabel* resultValue2;
     QWidget* displayCard;
+    QVector<QPushButton*> digitKeys;
+    QVector<QPushButton*> utilityKeys;
+    QPushButton* accentKey{nullptr};
+    void applyTheme();
     void updateDisplay();
     void updateResultLabels();
     double parseInput() const;

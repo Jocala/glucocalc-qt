@@ -8,5 +8,6 @@
     </qresource>
     <qresource prefix="/">
         <file>style.qss</file>
+        <file>style-dark.qss</file>
     </qresource>
 </RCC>

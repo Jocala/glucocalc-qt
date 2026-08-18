@@ -1,9 +1,9 @@
 #include <QApplication>
 #include "mainwindow.h"
+#include "theme.h"
 #include <QIcon>
 #include <QFontDatabase>
 #include <QStyleFactory>
-#include <QFile>
 #include <QScreen>
 #include <QStyle>
 
@@ -22,12 +22,7 @@ int main(int argc, char *argv[]){
         app.setFont(font);
     }
     app.setStyle(QStyleFactory::create("Fusion"));
-    QFile styleFile(":/style.qss");
-    if(styleFile.open(QFile::ReadOnly)){
-        QString styleSheet = QLatin1String(styleFile.readAll());
-        app.setStyleSheet(styleSheet);
-        styleFile.close();
-    }
+    Theme::apply(&app);  // applies :/style.qss or :/style-dark.qss + palette per saved theme
 
     MainWindow w;
     if(auto *screen = app.primaryScreen())

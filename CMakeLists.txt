@@ -23,7 +23,9 @@ if(APPLE)
       src/calculator.cpp
       src/mainwindow.cpp
       src/helpdialog.cpp
+      src/theme.cpp
       resources/AppIcon.icns
+      resources/resources.qrc
   )
 elseif(WIN32)
   qt_add_executable(glucocalc
@@ -31,7 +33,9 @@ elseif(WIN32)
       src/calculator.cpp
       src/mainwindow.cpp
       src/helpdialog.cpp
+      src/theme.cpp
       resources/glucocalc.rc
+      resources/resources.qrc
   )
 else()
   qt_add_executable(glucocalc
@@ -39,6 +43,7 @@ else()
       src/calculator.cpp
       src/mainwindow.cpp
       src/helpdialog.cpp
+      src/theme.cpp
       resources/resources.qrc
   )
 endif()
