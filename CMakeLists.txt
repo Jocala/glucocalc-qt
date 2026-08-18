@@ -60,7 +60,12 @@ endif()
 if(APPLE)
   set_target_properties(glucocalc PROPERTIES
       MACOSX_BUNDLE YES
+      MACOSX_BUNDLE_GUI_IDENTIFIER "com.jocala.glucocalc"
+      MACOSX_BUNDLE_BUNDLE_NAME "Glucocalc"
+      MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+      MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
       MACOSX_BUNDLE_ICON_FILE AppIcon
+      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/Info.plist.in"
       RESOURCE "resources/AppIcon.icns"
   )
 endif()
@@ -73,3 +78,13 @@ endif()
 # Install location
 install(TARGETS glucocalc
     BUNDLE DESTINATION .)
+
+# Packaging (macOS/Windows/Linux - CPack DragNDrop on Apple)
+set(CPACK_PACKAGE_VENDOR "jocala")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Glucose/HbA1c calculator")
+set(CPACK_PACKAGE_NAME "glucocalc")
+if(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_BINARY_TZ OFF)
+endif()
+include(CPack)

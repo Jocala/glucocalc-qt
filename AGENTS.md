@@ -24,9 +24,10 @@ Static Qt 6.11.1, `CMAKE_AUTOMOC/AUTORCC/AUTOUIC ON`, `C++17`, `Qt6::Core Gui Wi
 ```sh
 cmake -S /Users/jeff/source/glucocalc/glucocalc-qt -B /Users/jeff/source/glucocalc/glucocalc-qt/build
 cmake --build /Users/jeff/source/glucocalc/glucocalc-qt/build
-# -> build/glucocalc.app (20M arm64, AppIcon.icns)
+# -> build/glucocalc.app (universal x86_64;arm64 after build-glucocalc-macos.sh, AppIcon.icns)
 ```
 Or `open build/glucocalc.app`
+For the universal (x86_64;arm64) signing build, use `./build-glucocalc-macos.sh` (see "Packaging & signing").
 
 ### Linux (Debian 192.168.1.39 / debian.lan)
 ```sh
@@ -72,16 +73,30 @@ cmake --build C:\Users\jeff\build-glucocalc
 - `src/mainwindow.h/.cpp` (322 lines): `MainWindow` owns `mode` (`HbA1cMode`=`Calculate eAG`, `EAGMode`=`Calculate HbA1c` default `EAGMode` like Swift `.a1c`), `uk`, `didCompute`, `QGridLayout *keypad`, `QButtonGroup` segmented `Calculate eAG/HbA1c` (`007AFF` checked), `QCheckBox UK (IFCC)`, `displayCard` (`#9A9A9A 16px` rounded, 3 rows: prompt `Enter HbA1c/eAG below` dynamic per `uk`/`mode` + `NGSP HbA1c (%)`/`Calculated eAG (mg/dl)` + `IFCC HbA1c (mmol/mol)`/`Calculated eAG (mmol/L)`), `QGridLayout` 4-col keypad (`7 8 9 C / 4 5 6 ⌫ / 1 2 3 = / 0 . empty empty`, `54pt 14px`, digit `E5E5EA` utility `AEAEB2` accent `007AFF`), top `?` `helpButton` (`32px` `DejaVu Sans 18 bold` `#007AFF` on white, `Help` menu fallback), `updateResultLabels()`, `toggleUKUS()` converts input (`%↔mmol/mol`/`mg/dL↔mmol/L`) and recomputes if `didCompute`, `equalsPressed()` always fills `NGSP`/`IFCC`/`eAG mg/dL / mmol/L` dual, `setFixedSize(sizeHint())` with `minimumWidth` pre-size (not `FixedWidth`) for Linux HiDPI.
 - `src/helpdialog.h/.cpp`: `QDialog` `QScrollArea` verbatim `Glucocalc/HelpView.swift` (header `Glucocalc — Glucose/HbA1c Calculator` + `Version 2.0` via `applicationVersion` + `jocala@jocala.com`/`jocala.com`, sections Usage/Terminology/Formulas/About HbA1c, `Done`).
 - `resources/`: `AppIcon.icns` 755K rounded 22% (`iconutil` from 1024), `AppIcon.ico` 71K 6 sizes, `AppIcon-512.png` 115K / `AppIcon-256.png` 42K rounded, `DejaVuSans.ttf` 740K, `style.qss` 5.7K (Fusion uniform), `glucocalc.rc` (`IDI_ICON1 ICON "AppIcon.ico"`), `resources.qrc`; source root `icon.png`/`glucocalc.png` 115K 512 rounded for Linux `.desktop`.
-- `Info.plist` + `CMakeLists PROJECT VERSION 2.0` → `CFBundleVersion`/`CFBundleShortVersionString` `2.0`.
+- `packaging/Info.plist.in` + `CMakeLists PROJECT VERSION 2.0` → `CFBundleVersion`/`CFBundleShortVersionString` `2.0`, bundle id `com.jocala.glucocalc`.
 - Linux `build` also produces `glucocalc.desktop` (`Science` category, `Exec=glucocalc Icon=glucocalc`) + `glucocalc.png` alongside binary for `desktop-file-validate`.
 
 ## Version
 
-`2.0` — `Info.plist` `2.0`, `CMake 2.0`, `applicationVersion 2.0` → Help shows `Version 2.0`.
+`2.0` — `packaging/Info.plist.in` `2.0`, `CMake 2.0`, `applicationVersion 2.0` → Help shows `Version 2.0`.
+
+## Packaging & signing (macOS)
+
+- `./build-glucocalc-macos.sh` — universal reconfigure (`CMAKE_OSX_ARCHITECTURES="x86_64;arm64"`, deployment target 14.0) + build. Run before packaging.
+- `./package-glucocalc-macos.sh` — codesign (Developer ID, hardened runtime `--options=runtime`, `--timestamp`, empty `packaging/glucocalc.entitlements`), `cpack` DragNDrop with `packaging/sign-after-install.cmake` re-sign in staging dir, `xcrun notarytool submit --keychain-profile adblink-notary --wait`, `xcrun stapler staple`. Output: `build/packages/glucocalc-2.0-Darwin.dmg` (17M).
+- Identity: `Developer ID Application: jeff elkins (9Q77WK7W3R)` — team `9Q77WK7W3R`, notary profile `adblink-notary` (same Apple ID/team as adblink).
+- Bundle id `com.jocala.glucocalc` comes from `MACOSX_BUNDLE_GUI_IDENTIFIER` in CMakeLists + `packaging/Info.plist.in`. Stale root `Info.plist` was removed (was dead: no `MACOSX_BUNDLE_INFO_PLIST` wired, bogus `CFBundleIconFile appiconset`).
+- Verification:
+  - `codesign --verify --deep --strict --verbose=2 build/glucocalc.app`
+  - `codesign -dv --verbose=4 build/glucocalc.app` (expect `Identifier=com.jocala.glucocalc`, `Format=app bundle with Mach-O universal (x86_64 arm64)`, flags `runtime`)
+  - `xcrun stapler validate build/packages/glucocalc-2.0-Darwin.dmg`
+  - `xcrun notarytool history --keychain-profile adblink-notary`
+  - `hdiutil attach build/packages/glucocalc-2.0-Darwin.dmg` → confirm `glucocalc.app` + `Applications` symlink
+- Note: `packaging/glucocalc.entitlements` is an EMPTY dict — no `com.apple.security.cs.disable-library-validation` (that's adblink-only, for its nested adb tools; glucocalc has no nested code).
 
 ## Build outputs
 
-- macOS: `build/glucocalc.app/Contents/MacOS/glucocalc` `20M arm64`, `Contents/Resources/AppIcon.icns`, `Contents/Info.plist` `2.0`
+- macOS: `build/glucocalc.app/Contents/MacOS/glucocalc` `41M universal x86_64;arm64`, `Contents/Resources/AppIcon.icns`, `Contents/Info.plist` `2.0`
 - Linux: `/home/jeff/build-glucocalc/glucocalc` `32M ELF`, `glucocalc.desktop` `168` + `glucocalc.png` `113K`
 - Windows: `C:/Users/jeff/build-glucocalc/glucocalc.exe` `~23M` (`23163392` with icon, `5/8 Building RC`)
 
