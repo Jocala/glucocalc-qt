@@ -16,7 +16,7 @@ Static Qt 6.11.1, `CMAKE_AUTOMOC/AUTORCC/AUTOUIC ON`, `C++17`, `Qt6::Core Gui Wi
 |---|---|---|
 | macOS | `/Users/jeff/source/glucocalc/glucocalc-qt` | `/Users/jeff/source/glucocalc/glucocalc-qt/build` (`glucocalc.app`) |
 | Linux (Debian) | `/zstore/source/glucocalc/glucocalc-qt` (`/Volumes/source/glucocalc/glucocalc-qt` via Samba) | `/home/jeff/build-glucocalc` (`glucocalc` ELF) |
-| Windows (Win11VM) | `C:\source\glucocalc\glucocalc-qt` | `C:\Users\jeff\build-glucocalc` (`glucocalc.exe`) |
+| Windows (Win10 192.168.1.42) | `C:\source\glucocalc` | `C:\Users\jeff\build-glucocalc` (`glucocalc.exe`) |
 
 ## Build & test
 
@@ -41,23 +41,24 @@ Run headless screenshot: `ssh jeff@debian.lan "cat > /tmp/capture.sh <<'EOS'
 EOS
 xvfb-run -a --server-args='-screen 0 1280x1024x24' /tmp/capture.sh"`
 
-### Windows (Win11VM 192.168.1.137 / win11.lan)
+### Windows (Win10 192.168.1.42)
 ```sh
-scp -r /Users/jeff/source/glucocalc/glucocalc-qt jeff@win11.lan:'C:/source/glucocalc-qt_new'
-ssh jeff@win11.lan 'powershell -Command "Remove-Item -Recurse -Force C:/source/glucocalc/glucocalc-qt -ErrorAction Ignore; New-Item -ItemType Directory -Force -Path C:/source/glucocalc | Out-Null; Rename-Item C:/source/glucocalc-qt_new C:/source/glucocalc/glucocalc-qt"'
+tar cf - -C /Users/jeff/source/glucocalc --exclude=glucocalc-qt/build --exclude=glucocalc-qt/.qt glucocalc-qt | ssh jeff@192.168.1.42 'powershell -Command "Remove-Item -Recurse -Force C:/source/glucocalc -ErrorAction Ignore; tar xf - -C C:/source; Move-Item C:/source/glucocalc-qt C:/source/glucocalc"'
+# Legacy Win11VM was 192.168.1.137 / win11.lan (C:/source/glucocalc/glucocalc-qt nested)
 # Build requires vcvars64.bat (MSVC 18 BuildTools)
 # Use bundled script:
-scp /tmp/build-glucocalc-win.ps1 jeff@win11.lan:'C:/source/build-glucocalc-win.ps1'
-ssh jeff@win11.lan 'powershell -ExecutionPolicy Bypass -File C:/source/build-glucocalc-win.ps1'
+scp /tmp/build-glucocalc-win.ps1 jeff@192.168.1.42:'C:/source/build-glucocalc-win.ps1'
+ssh jeff@192.168.1.42 'powershell -ExecutionPolicy Bypass -File C:/source/build-glucocalc-win.ps1'
 # -> C:/Users/jeff/build-glucocalc/glucocalc.exe (23M, AppIcon.ico via glucocalc.rc)
 ```
 `C:/source/build-glucocalc-win.ps1`:
 ```ps
 $vcvars="C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 cmd /c "`"$vcvars`" > nul 2>&1 && set" | ForEach-Object { if($_ -match '^(\w+)=(.*)') { Set-Item env:$matches[1] $matches[2] } }
-cmake -S C:\source\glucocalc\glucocalc-qt -B C:\Users\jeff\build-glucocalc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:\Qt\Qt.6.11.1-static"
+cmake -S C:\source\glucocalc -B C:\Users\jeff\build-glucocalc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="C:\Qt\Qt.6.11.1-static"
 cmake --build C:\Users\jeff\build-glucocalc
 ```
+Inno Setup (`C:\bin\inno\ISCC.exe`): `C:\bin\inno\ISCC.exe C:\source\glucocalc\packaging\glucocalc.iss` → `C:\Users\jeff\build-glucocalc\glucocalc-2.0-Windows-Setup.exe` (9M) → `scp` to `debian:/zstore/source/www/jocala.com/glucocalc/`
 
 ## CMakeLists.txt key details
 
