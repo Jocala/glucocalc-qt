@@ -234,9 +234,9 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     updateResultLabels();
     updateDisplay();
     applyTheme();
-    // Fixed window geometry (Option A): matches macOS 420x620 reference, identical on Win/Linux regardless of font metrics/DPI.
+    // Fixed window geometry (Option A): matches macOS 420x620 reference, windows was clipping at 360, identical on Win/Linux regardless of font metrics/DPI.
     layout->setSizeConstraint(QLayout::SetFixedSize);
-    setFixedSize(360, 680);
+    setFixedSize(400, 700);
 }
 
 void MainWindow::applyTheme(){
