@@ -234,10 +234,9 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     updateResultLabels();
     updateDisplay();
     applyTheme();
-    // Lock window geometry: never resizable by the user and, because all label
-    // widths are pre-reserved above, the sizeHint never changes via code either.
+    // Fixed window geometry (Option A): matches macOS 420x620 reference, identical on Win/Linux regardless of font metrics/DPI.
     layout->setSizeConstraint(QLayout::SetFixedSize);
-    setFixedSize(sizeHint());
+    setFixedSize(360, 680);
 }
 
 void MainWindow::applyTheme(){
