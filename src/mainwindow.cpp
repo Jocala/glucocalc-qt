@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget* parent): QMainWindow(parent){
     qDebug() << "MainWindow constructed";
     QVBoxLayout *layout = new QVBoxLayout(central);
     layout->setSpacing(16);
-    layout->setContentsMargins(26,16,16,16); // col1 start +10px (was 16, now 26 left inset)
+    layout->setContentsMargins(36,16,16,16); // col1 start +20px total (was 16, now 36 left inset, +10 more)
 
     // Top bar with help button (visible on all platforms, esp. Linux)
     QHBoxLayout *topBar = new QHBoxLayout;
